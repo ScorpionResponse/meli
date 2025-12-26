@@ -203,8 +203,7 @@ impl Pager {
             bin: String,
             text: String,
             tab_width: u8,
-            width: usize,
-            height: usize,
+            min_width: usize,
         ) -> Result<EmbeddedGrid> {
             use std::{
                 io::Write,
@@ -227,24 +226,19 @@ impl Pager {
             let mut dev_null = std::fs::File::open("/dev/null")?;
             let mut embedded = EmbeddedGrid::new();
             embedded.set_tab_width(tab_width);
-            embedded.set_terminal_size((width, height));
+            embedded.set_terminal_size((min_width, 20));
 
             for b in out {
                 embedded.process_byte(&mut dev_null, b);
             }
             Ok(embedded)
         }
-        let mut width = self.width;
-        if width < self.minimum_width {
-            width = self.minimum_width;
-        }
         let tab_width = context.settings.terminal.tab_width;
         let fut = Box::pin(filter_fut(
             cmd.to_string(),
             self.text.clone(),
             tab_width,
-            width,
-            self.height,
+            self.minimum_width,
         ));
         let handle = context.main_loop_handler.job_executor.spawn(
             format!("Running pager filter {cmd}").into(),
